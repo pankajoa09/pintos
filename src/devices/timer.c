@@ -30,6 +30,11 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+/* Keep track of idle threads and start time*/
+static struct list idle_threads;
+static struct list begin_times;
+static struct list end_times;
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -89,11 +94,19 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  // turn off interupt
   int64_t start = timer_ticks ();
 
-  ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  // ASSERT (intr_get_level () == INTR_ON);
+  if (timer_elapsed (start) < ticks) {
+    thread_block();
+    /*
+    add thread_tid() to idle_threads
+    add start to begin_times
+    add ticks to end_times
+    */
+    // turn on
+  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -171,7 +184,16 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  thread_tick ();
+  // thread_tick ();
+
+  /* 
+    turn off interupt
+    for i in list_size(idle_threads):
+      if (timer_elapsed(begin_times[i]) > end_times[i]):
+        thread_unblock(idle_threads[i])
+        remove threads[i] and begin_times[i] and end_times[i]
+    turn on interupt
+  */
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
