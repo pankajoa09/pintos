@@ -9,7 +9,8 @@
 >> Fill in the names and email addresses of your group members.
 
 Majeed Thaika 5680571
-Kongsak Tipakornrojanakit 5680---
+Kongsak Tipakornrojanakit 5680624
+Pankaj Ahuja 5680004
 
 ---- PRELIMINARIES ----
 
@@ -29,26 +30,40 @@ Kongsak Tipakornrojanakit 5680---
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+- static struct List sleep_threads
+//- static struct List sleep_threads, begin_time, end_time
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+-We disable interrupt during timer_sleep(), because we need the threads to not interfere with each others' start and end times (no race conditions). The timer interrupt handler will remove any blocked threads, that passed its end time, from the sleeping threads list to the ready list.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+
+-We removed the "busy-waiting" loop (which will be taxing on the CPU resources), and replaced it with the block/unblock threads function given in thread.c, and check to see if any threads have passed its end time 'once in a while'.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+-We disable interrupts to stop any other threads from accessing other thread's start/end times, so we avoid race conditions easily.
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+-Since we diabled interrupts in timer_sleep(), any timer interrupts that occer must either wait or get dropped.
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+-We chose to use interrupt handlers, since using locks,etc , because we don't want to allow the threads in function timer_sleep() to sleep or yield (meaning we cannot use locks).
+
 
 			 PRIORITY SCHEDULING
 			 ===================

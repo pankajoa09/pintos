@@ -94,11 +94,11 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  // turn off interupt
   int64_t start = timer_ticks ();
 
-  ASSERT (intr_get_level () == INTR_ON);
+  // ASSERT (intr_get_level () == INTR_ON);
   if (timer_elapsed (start) < ticks) {
-    // turn off interupt
     thread_block();
     /*
     add thread_tid() to idle_threads
