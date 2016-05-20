@@ -38,7 +38,9 @@ Pankaj Ahuja 5680004
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
--We disable interrupt during timer_sleep(), because we need the threads to not interfere with each others' start and end times (no race conditions). The timer interrupt handler will remove any blocked threads, that passed its end time, from the sleeping threads list to the ready list.
+-We disable interrupt at the start of the  timer_sleep() function, because we need the threads to not interfere with each others ticks value when can calculating the start and end times using the OS start time..
+
+-The timer interrupt handler will remove any blocked threads that passed its end time (by checking if the current time has reached the end value), from the sleeping threads list to the ready list.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
@@ -50,7 +52,7 @@ Pankaj Ahuja 5680004
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
--We disable interrupts to stop any other threads from accessing other thread's start/end times, so we avoid race conditions easily.
+-We disable interrupts to stop any other threads from interfering with other thread's start/end times, so we avoid race conditions easily.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
@@ -62,7 +64,7 @@ Pankaj Ahuja 5680004
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
--We chose to use interrupt handlers, since using locks,etc , because we don't want to allow the threads in function timer_sleep() to sleep or yield (meaning we cannot use locks).
+-We chose to use interrupt handlers, since using locks,etc , because we don't want to allow the threads using the function timer_sleep() to sleep or yield (meaning we cannot use locks).
 
 
 			 PRIORITY SCHEDULING
@@ -74,20 +76,40 @@ Pankaj Ahuja 5680004
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+- List to keep threads waiting on current thread (because it is holding the lock - only direct waiting ones).
+
+- The lock this thread is currently waiting for.
+
+- List to keep maximum priority (based on donations) of each thread.
+
+- List holding the number of threads waiting for this lock.
+
+- List of all the indirect threads waiting for the current thread to free the lock (doesn't have to be directly waiting for the lock as well).
+
+- List to keep original priority of each thread.
+
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
+
+- ADD DISCUSSED DIAGRAM HERE!!!
 
 ---- ALGORITHMS ----
 
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
 
+- Each time a lock/semaphore becomes available, we check if there is any waiting threads, then we loop through the waiting list (the list which the has threads waiting for the particular lock), and get the thread with highest 'maximum' priority (it tied, choice is arbitrary).
+
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
+- First, the thread, which wants to acquire the lock, updates it target lock to the lock specified in lock_acquire() param. If the lock is free, it is acquired easily - but if it is being held by another thread, then the current thread is added to the waiting list of the lock keeper (and then if the lock keeper is waiting for any locks, then this thread is added to the indirect wait list of the lock keeper's waiting lock keeper and so on...). As it is being added to the donation lists, the maximum value is recomputed for ever lock keeper.
+
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+
+-The lock is freed and the lock keeper will give his waiting list to the higher priority (HP) thread (to add to waiting elements of the lock keeper to the HP thread's waiting list). The previous lock keeper's max priority is recomputed and the HP thread will be given the lock.
 
 ---- SYNCHRONIZATION ----
 
@@ -95,10 +117,14 @@ Pankaj Ahuja 5680004
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
+- A possible race condition is when the priority of the variable is being calculated, we have to beware that the current values of the possible donations are the most recent - since it could be the case that the thread is interrupted while calculating priority, and so when it returns, it may no longer be accurate. We remedy this by turning off interrupts at the start of thread_set_priority(), and turning it back on at the end of the function. Note that using locks will not solve this problem because it does nothing to stop the interrupt handler from updating priorities.
+
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+-Seems the most natural thing to do, since it solves the problem of deadlocks (when a higher priority thread is waiting for a lower priority one to release a lock) - and we also take care of the 'recursive' updating of the maximum priority of the threads.
 
 			  ADVANCED SCHEDULER
 			  ==================

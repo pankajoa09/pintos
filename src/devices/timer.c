@@ -31,7 +31,7 @@ static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
 /* Keep track of idle threads and start time*/
-static struct list idle_threads;
+static struct list sleeping_threads;
 static struct list begin_times;
 static struct list end_times;
 
@@ -101,7 +101,7 @@ timer_sleep (int64_t ticks)
   if (timer_elapsed (start) < ticks) {
     thread_block();
     /*
-    add thread_tid() to idle_threads
+    add thread_tid() to sleeping_threads
     add start to begin_times
     add ticks to end_times
     */
@@ -188,9 +188,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   /* 
     turn off interupt
-    for i in list_size(idle_threads):
+    for i in list_size(sleeping_threads):
       if (timer_elapsed(begin_times[i]) > end_times[i]):
-        thread_unblock(idle_threads[i])
+        thread_unblock(sleeping_threads[i])
         remove threads[i] and begin_times[i] and end_times[i]
     turn on interupt
   */
